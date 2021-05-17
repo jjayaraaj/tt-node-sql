@@ -2,6 +2,8 @@ const {Sequelize} = require('sequelize');
 const sequelize = require('./../util/database');
 
 const OperatorOtp = require('../models/operator-otp');
+const Tour = require('./tour');
+
 
 const Operator = sequelize.define('operator', {
     id: {
@@ -29,7 +31,7 @@ const Operator = sequelize.define('operator', {
     password: {
         type: Sequelize.STRING,
         validate: {
-            is: ["^[a-z]+$",'i'],
+            notEmpty: true
         }
     },
 
@@ -81,6 +83,12 @@ const Operator = sequelize.define('operator', {
 
 OperatorOtp.belongsTo(Operator, {constraints: true, onDelete: 'CASCADE'});
 Operator.hasOne(OperatorOtp);
+
+Operator.hasMany(Tour);
+Tour.belongsTo(Operator);
+
+
+
 
 
 

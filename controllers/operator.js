@@ -5,10 +5,19 @@ const otpGenerator = require("otp-generator");
 const OperatorOtp = require("./../models/operator-otp");
 const operatorMiddle = require("./../middleware/operator");
 const sequelize = require("../util/database");
+const Joi = require('joi');
+const bcrypt = require('bcrypt');
+
 
 exports.register = [
   operatorMiddle,
   asyncMiddleware(async (req, res, next) => {
+   
+    const {error} =  registerValidationError(req.body);
+    if(error){
+        return res.status(400).send(error.details[0].message);
+    }
+
     const email = req.body.email;
 
     const operator = await Operator.findOne({
@@ -26,9 +35,14 @@ exports.register = [
       digits: true,
     });
 
+    const salt = await bcrypt.genSalt(10);
+    const saltPass = await bcrypt.hash(req.body.password, salt);
+
+    console.log(saltPass)
+
     const operatorInsert = await Operator.create({
       username: req.body.username,
-      password: req.body.password,
+      password: saltPass,
       name: req.body.name,
       company: req.body.company,
       address: req.body.address,
@@ -38,9 +52,10 @@ exports.register = [
       website: req.body.website,
     });
 
+
+
     req.session.operatorId = operatorInsert.id;
 
-    console.log(req.operatorId);
 
     const operatorOtpRes = await operatorInsert.createOperatorOtp({
       otp: otp,
@@ -76,7 +91,6 @@ exports.register = [
         sendMsg = err;
         res.send(sendMsg);
       } else {
-        console.log(info);
         sendMsg = info;
         res.send(sendMsg);
       }
@@ -86,8 +100,13 @@ exports.register = [
 
 exports.activate = [
   asyncMiddleware(async (req, res, next) => {
+
+    const {error} =  otpValidataionError(req.body);
+  if(error){
+      return res.status(400).send(error.details[0].message);
+  }
+
     const otp = req.body.otp;
-    console.log("acti ", req.session.operatorId);
 
     await sequelize.transaction(async(transaction)=> {
       const operatorOtp =  await OperatorOtp.findOne({
@@ -123,3 +142,43 @@ exports.activate = [
    
   }),
 ];
+
+function otpValidataionError(message) { 
+  
+  const Schema = Joi.object({
+    otp: Joi.string().required().min(5)
+   });
+
+   return Schema.validate(message);
+
+}
+
+function registerValidationError(message) {
+  const Schema = Joi.object({
+    username: Joi.string()
+            .alphanum()
+            .min(3)
+            .max(30)
+            .required(),
+
+    password: Joi.string()                
+                  .min(3)                 
+                  .required(),
+
+    name: Joi.string()
+    .alphanum()
+    .min(3)
+    .max(30)
+    .required(),
+    company: Joi.string(),
+    address: Joi.string(),
+    country: Joi.string(),
+    phone: Joi.number(),
+    email: Joi.string().email().required(),
+    website: Joi.string()
+        //repeat_password: Joi.ref('password'),
+
+  });
+
+  return Schema.validate(message);
+}

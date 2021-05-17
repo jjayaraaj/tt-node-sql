@@ -7,7 +7,12 @@ const OperatorOtp = require("./models/operator-otp");
 
 const operatorMiddle = require("./middleware/operator");
 
+
+//routes
 const operatorRoute = require("./routes/operator");
+const authRoute = require("./routes/auth");
+const tourRouter = require("./routes/tour");
+
 
 const SequelizeStore = require("connect-session-sequelize")(session.Store);
 
@@ -45,6 +50,12 @@ app.use(operatorMiddle);
 
 //routers
 app.use("/api/operator", operatorRoute);
+
+//auth routers
+app.use("/api/auth", authRoute);
+
+//tour Routers
+app.use("/api/tour", tourRouter);
 
 const port = process.env.PORT || 3000;
 
